@@ -72,13 +72,45 @@ class Controller {
     console.table(tf.memory());
   }
 
-  addImageTargets(fileURL) {
-    return new Promise(async (resolve, reject) => {
-      const content = await fetch(fileURL);
-      const buffer = await content.arrayBuffer();
-      const result = this.addImageTargetsFromBuffer(buffer);
-      resolve(result);
+  async addImageTargets(fileURL) {
+    const promises = fileURL.map((url) => {
+      return new Promise(async (resolve, reject) => {
+        const content = await fetch(url);
+        const buffer = await content.arrayBuffer();
+        const compiler = new Compiler();
+        const dataList = compiler.importData(buffer);
+        resolve(dataList[0]);
+      });
+    })
+    const dataList = await Promise.all(promises);
+    return this.addImageTargetsFromDataList(dataList);
+  }
+
+  addImageTargetsFromDataList(dataList) {
+    const trackingDataList = [];
+    const matchingDataList = [];
+    const imageListList = [];
+    const dimensions = [];
+    for (let i = 0; i < dataList.length; i++) {
+      matchingDataList.push(dataList[i].matchingData);
+      trackingDataList.push(dataList[i].trackingData);
+      dimensions.push([dataList[i].targetImage.width, dataList[i].targetImage.height]);
+    }
+
+    this.tracker = new Tracker(dimensions, trackingDataList, this.projectionTransform, this.inputWidth, this.inputHeight, this.debugMode);
+
+    this.worker.postMessage({
+      type: 'setup',
+      inputWidth: this.inputWidth,
+      inputHeight: this.inputHeight,
+      projectionTransform: this.projectionTransform,
+      debugMode: this.debugMode,
+      matchingDataList,
     });
+
+    this.markerDimensions = dimensions;
+
+    return {dimensions: dimensions, matchingDataList, trackingDataList};
   }
 
   addImageTargetsFromBuffer(buffer) {

@@ -203,7 +203,7 @@ AFRAME.registerComponent('mindar-image', {
   dependencies: ['mindar-image-system'],
 
   schema: {
-    imageTargetSrc: {type: 'string'},
+    imageTargetSrc: {type: 'array'},
     maxTrack: {type: 'int', default: 1},
     filterMinCF: {type: 'number', default: -1},
     filterBeta: {type: 'number', default: -1},
